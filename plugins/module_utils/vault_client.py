@@ -225,6 +225,25 @@ class VaultKv2Secrets:
         logger.debug("POST secret at %s with CAS: %s", secret_path, cas)
         return self._make_request("POST", path, json=body)
 
+    def delete_secret(
+        self, mount_path: str, secret_path: str, version: Optional[int] = None
+    ) -> None:
+        """
+        Deletes a secret from the KV2 secrets engine; if secret version is not provided
+        then it will delete the latest version of the secret.
+            version (int, optional): The version to delete. Defaults to the latest.
+
+        Returns:
+            None
+        """
+        if version is None:
+            path = f"{mount_path}/data/{secret_path}"
+            self._make_request("DELETE", path)
+        else:
+            path = f"{mount_path}/delete/{secret_path}"
+            # Even with only a single version specified, the API expects a list of versions
+            self._make_request("POST", path, json={"versions": [version]})
+
 
 class Secrets:
     """A container class for different secrets engine clients."""
