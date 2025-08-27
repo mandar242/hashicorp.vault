@@ -6,7 +6,7 @@
 import json  # noqa: F401
 import logging
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 
 try:
@@ -135,7 +135,7 @@ class VaultKv2Secrets:
             **kwargs: Additional arguments for the requests library.
 
         Returns:
-            dict: The JSON response data.
+            dict: The JSON response data, or empty dict for successful operations with no content.
         """
 
         url = f"{self._client.vault_address}/v1/{path}"
@@ -143,7 +143,7 @@ class VaultKv2Secrets:
         try:
             response = self._client.session.request(method, url, **kwargs)
             response.raise_for_status()
-            return response.json()
+            return response.json() if response.content else {}
         except requests.exceptions.HTTPError as e:
             status_code = e.response.status_code
             try:
@@ -226,23 +226,30 @@ class VaultKv2Secrets:
         return self._make_request("POST", path, json=body)
 
     def delete_secret(
-        self, mount_path: str, secret_path: str, version: Optional[int] = None
+        self, mount_path: str, secret_path: str, versions: Optional[List[int]] = None
     ) -> None:
         """
-        Deletes a secret from the KV2 secrets engine; if secret version is not provided
-        then it will delete the latest version of the secret.
-            version (int, optional): The version to delete. Defaults to the latest.
+        Deletes a secret from the KV2 secrets engine.
+        If secret version is not provided, it will soft delete the latest version of the secret.
+        If secret version is provided, it will delete the specified versions of the secret.
+        This performs a soft delete (not a permanent destroy) of the secret version(s).
+
+        Args:
+            mount_path (str): The mount path of the KV2 secrets engine.
+            secret_path (str): The path to the secret.
+            versions (List[int], optional): The versions to delete. If not provided, deletes the latest version.
 
         Returns:
             None
         """
-        if version is None:
+        if versions:
+            # Delete specific versions using batch deletion
+            path = f"{mount_path}/delete/{secret_path}"
+            self._make_request("POST", path, json={"versions": versions})
+        else:
+            # Delete latest version
             path = f"{mount_path}/data/{secret_path}"
             self._make_request("DELETE", path)
-        else:
-            path = f"{mount_path}/delete/{secret_path}"
-            # Even with only a single version specified, the API expects a list of versions
-            self._make_request("POST", path, json={"versions": [version]})
 
 
 class Secrets:
