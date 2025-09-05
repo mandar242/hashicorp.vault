@@ -51,8 +51,18 @@ jobs:
             echo "has-targets=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Run integration tests (${{ matrix.ansible-version }})
+      - name: Render integration_config.yml from template
+        shell: bash
+        run: ansible -m ansible.builtin.template -a 'src=tests/integration/integration_config.yml.template dest=tests/integration/integration_config.yml' localhost # noqa: yaml[line-length]
+        working-directory: /home/runner/.ansible/collections/ansible_collections/hashicorp/vault
+        env:
+          VAULT_ADDR: "${{ secrets.VAULT_ADDR }}"
+          VAULT_NAMESPACE: "${{ secrets.VAULT_NAMESPACE }}"
+          VAULT_APPROLE_ROLE_ID: "${{ secrets.VAULT_APPROLE_ROLE_ID }}"
+          VAULT_APPROLE_SECRET_ID: "${{ secrets.VAULT_APPROLE_SECRET_ID }}"
+
+      - name: Run integration tests
         if: steps.check-targets.outputs.has-targets == 'true'
         run: |
-          cd ~/.ansible/collections/ansible_collections/hashicorp/vault
+          cd ~/.ansible/collections/ansible_collections/hashicorp/vault && \
           ansible-test integration --python ${{ matrix.python-version }} --continue-on-error
