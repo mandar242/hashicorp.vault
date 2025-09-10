@@ -13,7 +13,7 @@ class ModuleDocFragment:
     """Documentation fragment for HashiCorp Vault authentication options."""
 
     # Common Vault authentication options
-    DOCUMENTATION = """
+    MODULES = r"""
 options:
   url:
     description: Vault server URL.
@@ -56,4 +56,57 @@ notes:
   - Token authentication is the default method.
   - For AppRole authentication, both O(role_id) and O(secret_id) are required.
   - Environment variables take precedence over module parameters when both are provided.
+"""
+
+    # Common Vault authentication options
+    # - modules don't support 'env'
+    PLUGINS = r"""
+options:
+  url:
+    description: Vault server URL.
+    required: true
+    type: str
+    aliases: [vault_address]
+    env:
+      - name: VAULT_ADDR
+  namespace:
+    description: Vault namespace.
+    default: admin
+    type: str
+    aliases: [vault_namespace]
+  auth_method:
+    description: Authentication method to use.
+    choices: ['token', 'approle']
+    default: token
+    type: str
+  token:
+    description:
+      - Vault token for authentication.
+    type: str
+    env:
+      - name: VAULT_TOKEN
+  role_id:
+    description:
+      - Role ID for AppRole authentication.
+      - Required when O(auth_method=approle).
+    type: str
+    aliases: [approle_role_id]
+    env:
+      - name: VAULT_APPROLE_ROLE_ID
+  secret_id:
+    description:
+      - Secret ID for AppRole authentication.
+      - Required when O(auth_method=approle).
+    type: str
+    aliases: [approle_secret_id]
+    env:
+      - name: VAULT_APPROLE_SECRET_ID
+  vault_approle_path:
+    description: AppRole auth method mount path.
+    default: approle
+    type: str
+    env:
+      - name: VAULT_APPROLE_PATH
+notes:
+  - Authentication is required for all Vault operations.
 """

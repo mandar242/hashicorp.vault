@@ -20,7 +20,7 @@ description:
   - Supports token and AppRole authentication methods.
   - It does not create the secret engine if it does not exist and will fail if the secret engine path (engine_mount_point) is not enabled.
 extends_documentation_fragment:
-  - hashicorp.vault.vault_auth
+  - hashicorp.vault.vault_auth.modules
 options:
   engine_mount_point:
     description: KV secrets engine mount point.
