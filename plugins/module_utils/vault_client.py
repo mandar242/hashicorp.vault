@@ -561,25 +561,46 @@ class VaultPki:
         logger.debug("POST PKI sign %s at role %s", path, role)
         return self._client._make_request("POST", path, json=body)
 
-    def revoke_certificate(self, serial_number: str) -> Dict[str, Any]:
+    def revoke_certificate(
+        self,
+        serial_number: Optional[str] = None,
+        certificate: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """
-        Revoke a certificate by serial number via POST ``/revoke``.
+        Revoke a certificate via POST ``/revoke`` on the PKI mount (see Vault PKI HTTP API).
+
+        The request body must include exactly one of ``serial_number`` or ``certificate``.
 
         Args:
-            serial_number (str): Certificate serial in Vault format (colon-separated hex).
+            serial_number (str, optional): Certificate serial in Vault format (colon-separated hex).
+            certificate (str, optional): PEM-encoded certificate to revoke.
 
         Returns:
             dict: Full Vault JSON response.
 
         Raises:
-            TypeError: If ``serial_number`` is not a string.
+            TypeError: If the provided argument is not a string.
+            ValueError: If both or neither of ``serial_number`` and ``certificate`` are set.
         """
-        _require_str("serial_number", serial_number)
+        if serial_number is not None:
+            _require_str("serial_number", serial_number)
+        if certificate is not None:
+            _require_str("certificate", certificate)
+
+        has_serial = serial_number is not None
+        has_cert = certificate is not None
+        if has_serial == has_cert:
+            raise ValueError("Exactly one of serial_number and certificate must be provided")
 
         path = f"v1/{self._mount_path}/revoke"
-        logger.debug("POST PKI revoke serial %s", serial_number)
+        if has_serial:
+            body: Dict[str, Any] = {"serial_number": serial_number}
+            logger.debug("POST PKI revoke by serial %s", serial_number)
+        else:
+            body = {"certificate": certificate}
+            logger.debug("POST PKI revoke by certificate PEM (%d chars)", len(certificate or ""))
         logger.debug("POST PKI revoke %s", path)
-        return self._client._make_request("POST", path, json={"serial_number": serial_number})
+        return self._client._make_request("POST", path, json=body)
 
     def read_certificate(self, serial_number: str) -> Dict[str, Any]:
         """

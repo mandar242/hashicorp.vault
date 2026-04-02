@@ -252,6 +252,37 @@ class TestVaultPkiRevokeCertificate:
         with pytest.raises(TypeError, match="serial_number must be a str"):
             pki.revoke_certificate(999)  # type: ignore[arg-type]
 
+    def test_revoke_certificate_by_pem(self, authenticated_client):
+        authenticated_client._make_request.return_value = {"data": {"revocation_time": 1}}
+        pki = VaultPki(authenticated_client)
+        pem = "-----BEGIN CERTIFICATE-----\nMIIB...\n-----END CERTIFICATE-----\n"
+
+        pki.revoke_certificate(certificate=pem)
+
+        authenticated_client._make_request.assert_called_once_with(
+            "POST",
+            "v1/pki/revoke",
+            json={"certificate": pem},
+        )
+
+    def test_revoke_certificate_certificate_type_error(self, authenticated_client):
+        pki = VaultPki(authenticated_client)
+        with pytest.raises(TypeError, match="certificate must be a str"):
+            pki.revoke_certificate(certificate=999)  # type: ignore[arg-type]
+
+    def test_revoke_certificate_neither_serial_nor_certificate(self, authenticated_client):
+        pki = VaultPki(authenticated_client)
+        with pytest.raises(ValueError, match="Exactly one of serial_number and certificate"):
+            pki.revoke_certificate()
+
+    def test_revoke_certificate_both_serial_and_certificate(self, authenticated_client):
+        pki = VaultPki(authenticated_client)
+        with pytest.raises(ValueError, match="Exactly one of serial_number and certificate"):
+            pki.revoke_certificate(
+                serial_number="7e:5e:bf:12",
+                certificate="-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n",
+            )
+
 
 class TestVaultPkiReadCertificate:
     def test_read_certificate_encodes_serial(self, authenticated_client):
