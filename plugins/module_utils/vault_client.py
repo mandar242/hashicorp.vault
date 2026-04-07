@@ -500,7 +500,7 @@ class VaultPki:
         self._require_str("mount_path", coalesced)
         self._mount_path = coalesced.strip().strip("/")
 
-    def generate_certificate(self, role: str, common_name: str, extra: Optional[Dict[str, Any]] = None) -> dict:
+    def generate_certificate(self, role: str, common_name: str, extra: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Generate a new private key and certificate via POST ``/issue/:role``.
 
@@ -528,7 +528,7 @@ class VaultPki:
         logger.debug("POST PKI issue %s at role %s", path, role)
         return self._client._make_request("POST", path, json=body)
 
-    def sign_certificate(self, role: str, csr: str, common_name: str, extra: Optional[Dict[str, Any]] = None) -> dict:
+    def sign_certificate(self, role: str, csr: str, common_name: str, extra: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Sign a certificate signing request via POST ``/sign/:role``.
 
