@@ -575,6 +575,7 @@ class Database:
         # Custom mount path
         prod_db = Database(client, mount_path="postgres-prod")
         dev_db = Database(client, mount_path="postgres-dev")
+        dev_db.connections.list_connections()
         prod_db.static_roles.list_static_roles()
         dev_db.dynamic_roles.list_dynamic_roles()
 
