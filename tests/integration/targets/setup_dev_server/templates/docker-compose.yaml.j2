@@ -1,0 +1,29 @@
+services:
+  # This service runs once, creates certs, and then exits
+  cert-gen:
+    container_name: cert-generator
+    image: alpine/openssl
+    volumes:
+      - {{ vault_temp_dir }}/:/export
+    entrypoint: >
+      /bin/sh -c "
+      if [ ! -f /export/vault.crt ]; then
+        openssl req -x509 -newkey rsa:4096 -keyout /export/vault.key -out /export/vault.crt -days 365 -nodes -subj '/CN=localhost' -addext 'subjectAltName = DNS:localhost,IP:127.0.0.1'
+      fi"
+  vault:
+    depends_on:
+      cert-gen:
+        condition: service_completed_successfully
+    image: hashicorp/vault:latest
+    container_name: vault-server
+    ports:
+      - "8200:8200"
+    environment:
+      - VAULT_ADDR=https://127.0.0.1:8200
+    cap_add:
+      - IPC_LOCK
+    command: ["vault", "server", "-config=/vault/config/vault-config.hcl"]
+    volumes:
+      - {{ vault_temp_dir }}/vault-config.hcl:/vault/config/vault-config.hcl
+      - {{ vault_temp_dir }}/vault.crt:/vault/config/vault.crt
+      - {{ vault_temp_dir }}/vault.key:/vault/config/vault.key

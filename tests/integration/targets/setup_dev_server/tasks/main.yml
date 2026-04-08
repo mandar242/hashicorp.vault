@@ -1,0 +1,55 @@
+---
+- name: Create temporary directory for vault resources
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: .dev.vault
+  register: vault_dir
+
+- name: Set variable for vault directory
+  ansible.builtin.set_fact:
+    vault_temp_dir: "{{ vault_dir.path }}"
+
+- name: Create docker compose configuration file
+  ansible.builtin.template:
+      src: docker-compose.yaml.j2
+      dest: "{{ vault_temp_dir }}/docker-compose.yaml"
+
+- name: Copy vault configuration file
+  ansible.builtin.copy:
+    src: vault-config.hcl
+    dest: "{{ vault_temp_dir }}/vault-config.hcl"
+
+- name: Stop container via CLI and ignore "not found" errors
+  ansible.builtin.command: "docker stop {{ item }}"
+  register: docker_stop_result
+  failed_when: 
+    - docker_stop_result.rc != 0
+    - "'No such container' not in docker_stop_result.stderr"
+  loop: ["cert-generator", "vault-server"]
+
+- name: Remove container via CLI and ignore "not found" errors
+  ansible.builtin.command: "docker rm {{ item }}"
+  register: docker_rm_result
+  failed_when: 
+    - docker_rm_result.rc != 0
+    - "'No such container' not in docker_rm_result.stderr"
+  loop: ["cert-generator", "vault-server"]
+
+- name: Run docker compose up
+  ansible.builtin.command: docker compose up -d --remove-orphans
+  args:
+    chdir: "{{ vault_temp_dir }}"
+  notify: 'Delete resources'
+
+- name: Configure the vault dev server
+  vault_config:
+    ca_cert: "{{ vault_temp_dir }}/vault.crt"
+    engine_path: "{{ vault_dev_server_engine_path }}"
+  register: result
+
+- name: Set server variable for later use
+  ansible.builtin.set_fact:
+    vault_dev_server_cacert: "{{ vault_temp_dir }}/vault.crt"
+    vault_dev_server_url: "https://127.0.0.1:8200"
+    vault_dev_server_root_token: "{{ result.root_token }}"
+    vault_dev_server_engine_mount_path: "{{ vault_dev_server_engine_path }}"

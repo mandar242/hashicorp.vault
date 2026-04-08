@@ -1,0 +1,10 @@
+---
+- name: Stop docker compose infrastructure
+  ansible.builtin.command: docker compose down --remove-orphans
+  args:
+    chdir: "{{ vault_temp_dir }}"
+
+- name: Delete temporary directory
+  ansible.builtin.file:
+    state: absent
+    path: "{{ vault_temp_dir }}"
