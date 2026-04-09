@@ -157,7 +157,7 @@ class VaultLogin:
     LOGIN_CONFIG = {
         "alicloud": ["role", "identity_request_url", "identity_request_headers"],
         "approle": ["role_id", "secret_id"],
-        "aws": [],
+        "aws": [], # No validation - AWS auth has multiple methods with different params
         "azure": ["role", "jwt"],
         "cf": ["role", "cf_instance_cert", "signing_time", "signature"],
         "github": ["token"],
