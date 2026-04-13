@@ -34,7 +34,6 @@
         that:
           - setup_db_conn is changed
 
-    # Test: Create static role with missing required parameters
     - name: Try to create static role without required parameters
       hashicorp.vault.database_static_role:
         name: "{{ static_role_name }}"
@@ -81,8 +80,24 @@
       ansible.builtin.assert:
         that:
           - create_window_with_period is failed
-          - '"rotation_window" in create_window_with_period.msg'
-          - '"rotation_schedule" in create_window_with_period.msg'
+          - '"mutually exclusive" in create_window_with_period.msg'
+
+    # Test: Validation - Invalid duration format
+    - name: Try to create static role with invalid rotation_period format
+      hashicorp.vault.database_static_role:
+        name: "{{ static_role_name }}-validation"
+        db_name: "{{ db_connection_name }}"
+        username: "{{ static_role_username }}"
+        rotation_period: "invalid_time"
+        skip_import_rotation: true
+      ignore_errors: true
+      register: create_invalid_duration
+
+    - name: Ensure task failed due to invalid duration format
+      ansible.builtin.assert:
+        that:
+          - create_invalid_duration is failed
+          - '"must be a valid duration string" in create_invalid_duration.msg'
 
     # Test: Create static role (check mode)
     # Note: skip_import_rotation prevents immediate password rotation, allowing tests
@@ -109,7 +124,6 @@
           - create_check_mode is changed
           - static_role_check.static_roles == []
 
-    # Test: Create static role
     - name: Create static role
       hashicorp.vault.database_static_role:
         name: "{{ static_role_name }}"
@@ -138,7 +152,6 @@
           - static_role_read.static_roles[0].username == static_role_username
           - static_role_list.static_roles | selectattr('name', 'equalto', static_role_name) | list | length == 1
 
-    # Test: Create static role (idempotency)
     - name: Create static role again (idempotency test)
       hashicorp.vault.database_static_role:
         name: "{{ static_role_name }}"
@@ -160,7 +173,49 @@
           - static_role_read_again.static_roles[0].db_name == db_connection_name
           - static_role_read_again.static_roles[0].username == static_role_username
 
-    # Test: Create static role with rotation_schedule and rotation_window
+    # Test: Idempotency with different duration format (equivalent values)
+    # This verifies that "24h", "86400s", and 86400 are treated as equivalent by Vault
+    - name: Verify idempotency with equivalent duration format (string)
+      hashicorp.vault.database_static_role:
+        name: "{{ static_role_name }}"
+        db_name: "{{ db_connection_name }}"
+        username: "{{ static_role_username }}"
+        rotation_period: "86400s"
+        skip_import_rotation: true
+      register: update_equivalent_duration_string
+
+    - name: Verify idempotency with equivalent duration format (integer)
+      hashicorp.vault.database_static_role:
+        name: "{{ static_role_name }}"
+        db_name: "{{ db_connection_name }}"
+        username: "{{ static_role_username }}"
+        rotation_period: 86400
+        skip_import_rotation: true
+      register: update_equivalent_duration_int
+
+    - name: Validate that equivalent duration formats are idempotent
+      ansible.builtin.assert:
+        that:
+          - update_equivalent_duration_string is not changed
+          - update_equivalent_duration_int is not changed
+        fail_msg: "Module reported changed when updating with equivalent duration formats"
+
+    # Test: Verify that actual duration changes are detected
+    - name: Update static role with different duration value
+      hashicorp.vault.database_static_role:
+        name: "{{ static_role_name }}"
+        db_name: "{{ db_connection_name }}"
+        username: "{{ static_role_username }}"
+        rotation_period: "48h"
+        skip_import_rotation: true
+      register: update_different_duration
+
+    - name: Validate that duration change is detected
+      ansible.builtin.assert:
+        that:
+          - update_different_duration is changed
+        fail_msg: "Module did not detect change when duration value was updated"
+
     - name: Create static role with rotation_schedule and rotation_window
       hashicorp.vault.database_static_role:
         name: "{{ static_role_name }}-schedule"
@@ -189,6 +244,53 @@
         name: "{{ static_role_name }}-schedule"
         state: absent
 
+    - name: Create static role with RSA private key credential type
+      hashicorp.vault.database_static_role:
+        name: "{{ static_role_name }}-rsa"
+        db_name: "{{ db_connection_name }}"
+        username: "{{ static_role_username }}_rsa"
+        rotation_period: "24h"
+        credential_type: rsa_private_key
+        credential_config:
+          key_bits: 2048
+        skip_import_rotation: true
+      register: create_with_credential_config
+
+    - name: Read the RSA credential static role
+      hashicorp.vault.database_static_role_info:
+        name: "{{ static_role_name }}-rsa"
+      register: rsa_role_read
+
+    - name: Validate that credential_type and credential_config were set
+      ansible.builtin.assert:
+        that:
+          - create_with_credential_config is changed
+          - rsa_role_read.static_roles | length == 1
+          - rsa_role_read.static_roles[0].credential_type == "rsa_private_key"
+
+    # Test: Idempotency with credential_config
+    - name: Create static role with RSA credential type again (idempotency)
+      hashicorp.vault.database_static_role:
+        name: "{{ static_role_name }}-rsa"
+        db_name: "{{ db_connection_name }}"
+        username: "{{ static_role_username }}_rsa"
+        rotation_period: "24h"
+        credential_type: rsa_private_key
+        credential_config:
+          key_bits: 2048
+        skip_import_rotation: true
+      register: create_rsa_idempotency
+
+    - name: Validate idempotency works with credential_config
+      ansible.builtin.assert:
+        that:
+          - create_rsa_idempotency is not changed
+
+    - name: Delete the RSA-based static role
+      hashicorp.vault.database_static_role:
+        name: "{{ static_role_name }}-rsa"
+        state: absent
+
     # Test: List static roles returns only names when no specific role requested
     - name: List all static roles
       hashicorp.vault.database_static_role_info:
@@ -200,7 +302,6 @@
           - list_all_roles.static_roles | length > 0
           - list_all_roles.static_roles | selectattr('name', 'equalto', static_role_name) | list | length == 1
 
-    # Test: Delete static role (check mode)
     - name: Delete static role (check mode)
       hashicorp.vault.database_static_role:
         name: "{{ static_role_name }}"
@@ -219,7 +320,6 @@
           - delete_check_mode is changed
           - static_role_after_check_delete.static_roles | length == 1
 
-    # Test: Delete static role
     - name: Delete static role
       hashicorp.vault.database_static_role:
         name: "{{ static_role_name }}"
@@ -237,7 +337,6 @@
           - delete_static_role is changed
           - static_role_after_delete.static_roles == []
 
-    # Test: Delete static role (idempotency)
     - name: Delete static role again (idempotency test)
       hashicorp.vault.database_static_role:
         name: "{{ static_role_name }}"
@@ -260,6 +359,12 @@
     - name: Delete schedule-based static role (cleanup)
       hashicorp.vault.database_static_role:
         name: "{{ static_role_name }}-schedule"
+        state: absent
+      ignore_errors: true
+
+    - name: Delete RSA-based static role (cleanup)
+      hashicorp.vault.database_static_role:
+        name: "{{ static_role_name }}-rsa"
         state: absent
       ignore_errors: true
 

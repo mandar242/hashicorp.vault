@@ -8,13 +8,13 @@ from __future__ import absolute_import, division, print_function
 DOCUMENTATION = """
 ---
 module: database_static_role_info
-short_description: List available static roles or read configuration for a specific static role.
+short_description: List available static roles or read the configuration for a specific static role
 version_added: 1.2.0
 author: Hannah DeFazio (@hdefazio)
 description:
-  - This module retrieves configuration details for a specific Vault database static role.
-  - When a role name is provided, it returns its full settings; if the name is omitted,
-    the module returns a comprehensive list of all available database static roles within the specified mount path.
+  - This module retrieves information about database static roles in HashiCorp Vault.
+  - When a role name is provided, it returns the full configuration for that specific role.
+  - When no name is provided, it returns a list of all available static role names.
 options:
   name:
     description: The name of the database static role to read.
@@ -30,12 +30,12 @@ extends_documentation_fragment:
 """
 
 EXAMPLES = """
-- name: List all available database static roles
-  hashicorp.vault.database_static_role_info:
-
 - name: Read configuration for a specific database static role
   hashicorp.vault.database_static_role_info:
     name: my-static-role
+
+- name: List all available database static roles
+  hashicorp.vault.database_static_role_info:
 """
 
 RETURN = """
@@ -47,38 +47,19 @@ static_roles:
   returned: always
   type: list
   elements: dict
-  contains:
-    name:
-      description: The name of the static role.
-      type: str
-      returned: always
-    db_name:
-      description: The database connection name.
-      type: str
-      returned: when O(name) is specified
-    username:
-      description: The database username managed by this role.
-      type: str
-      returned: when O(name) is specified
-    rotation_period:
-      description: The rotation period in seconds.
-      type: int
-      returned: when O(name) is specified
-    rotation_statements:
-      description: SQL statements executed during rotation.
-      type: list
-      elements: str
-      returned: when O(name) is specified
   sample:
-    # When listing all roles (no name specified)
-    - name: role1
-    - name: role2
-    # When reading a specific role (name specified)
-    - name: my-static-role
-      db_name: my-postgres-db
-      username: vault-user
-      rotation_period: 86400
-      rotation_statements: []
+    # When listing all roles (no name specified), only names are returned:
+    # [{"name": "role1"}, {"name": "role2"}]
+    # When reading a specific role (name specified), full details are returned:
+    [
+        {
+            "name": "my-static-role",
+            "db_name": "my-postgres-db",
+            "username": "vault-user",
+            "rotation_period": 86400,
+            "rotation_statements": []
+        }
+    ]
 """
 
 
@@ -92,13 +73,13 @@ from ansible_collections.hashicorp.vault.plugins.module_utils.args_common import
 from ansible_collections.hashicorp.vault.plugins.module_utils.vault_auth_utils import (
     get_authenticated_client,
 )
-from ansible_collections.hashicorp.vault.plugins.module_utils.vault_client import (
+from ansible_collections.hashicorp.vault.plugins.module_utils.vault_database import (
     VaultDatabaseStaticRoles,
+    get_static_role,
 )
 from ansible_collections.hashicorp.vault.plugins.module_utils.vault_exceptions import (
     VaultApiError,
     VaultPermissionError,
-    VaultSecretNotFoundError,
 )
 
 
@@ -117,7 +98,8 @@ def main() -> None:
     )
 
     client = get_authenticated_client(module)
-    mount_path = module.params["database_mount_path"]
+
+    mount_path = module.params.get("database_mount_path")
     name = module.params.get("name")
 
     try:
@@ -125,17 +107,18 @@ def main() -> None:
 
         # Read specific role configuration
         if name:
-            data = db_static_role_client.read_static_role(name)
-            data.update({"name": name})
-            static_roles = [data]
+            data = get_static_role(db_static_role_client, name)
+            if data:
+                data.update({"name": name})
+                static_roles = [data]
+            else:
+                static_roles = []
         # List all roles
         else:
-            static_roles = [{"name": role_name} for role_name in db_static_role_client.list_static_roles() or []]
+            static_roles = [{"name": role_name} for role_name in db_static_role_client.list_static_roles()]
 
         module.exit_json(static_roles=static_roles)
 
-    except VaultSecretNotFoundError as e:
-        module.exit_json(static_roles=[])
     except VaultPermissionError as e:
         module.fail_json(msg=f"Permission denied: {e}")
     except VaultApiError as e:
