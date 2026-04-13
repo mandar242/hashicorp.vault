@@ -11,8 +11,8 @@ DOCUMENTATION = """
 ---
 module: database_role_info
 short_description: Read HashiCorp Vault database dynamic role configuration
-version_added: 1.1.0
-author: Red Hat
+version_added: 1.2.0
+author: Matthew Johnson (@mjohns91)
 description:
   - Read the configuration of dynamic roles in HashiCorp Vault Database Secrets Engine.
   - This module is read-only and does not modify role configuration.

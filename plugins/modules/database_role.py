@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2025 Red Hat, Inc.
+# Copyright (c) 2026 Red Hat, Inc.
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
@@ -12,7 +12,7 @@ DOCUMENTATION = """
 module: database_role
 short_description: Manage HashiCorp Vault database dynamic roles
 version_added: 1.1.0
-author: Red Hat
+author: Matthew Johnson (@mjohns91)
 description:
   - Create, update, or delete dynamic roles in HashiCorp Vault Database Secrets Engine.
   - Dynamic roles generate database credentials on-demand with configurable TTLs.
