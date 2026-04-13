@@ -7,10 +7,12 @@ action_groups:
     - auth_login
     - auth_token
     - auth_token_info
-    - database_connection_info
     - database_connection
-    - kv1_secret_info
+    - database_connection_info
+    - database_role
+    - database_role_info
     - kv1_secret
-    - kv2_secret_info
+    - kv1_secret_info
     - kv2_secret
+    - kv2_secret_info
     - vault_namespace
