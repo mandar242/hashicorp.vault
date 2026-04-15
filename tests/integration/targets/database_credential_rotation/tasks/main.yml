@@ -12,12 +12,6 @@
     database_static_role_name: "ansible-static-role-{{ vault_resource_suffix }}"
     vault_network_name: "vault-net-{{ vault_resource_suffix }}"
   block:
-
-    - name: Make setup_vault_dev_with_postgresql's modules available
-      ansible.builtin.include_role:
-        name: setup_vault_dev_with_postgresql
-        public: true
-
     - name: Validate connection to the database and create additional user
       postgres_execute:
         user: postgres

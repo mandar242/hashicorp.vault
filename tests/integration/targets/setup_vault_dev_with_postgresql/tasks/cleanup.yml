@@ -1,7 +1,7 @@
 ---
 - name: Remove containers
   ansible.builtin.command: >-
-    {{ container_runtime }}-compose down --remove-orphans
+    {{ container_compose_runtime }} down --remove-orphans
   args:
     chdir: "{{ compose_dir.path }}"
   ignore_errors: true

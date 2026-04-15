@@ -21,13 +21,13 @@
 
 - name: Delete old resources
   ansible.builtin.command: >-
-    {{ container_runtime }}-compose down --remove-orphans
+    {{ container_compose_runtime }} down --remove-orphans
   args:
     chdir: "{{ compose_dir.path }}"
 
 - name: Spawn containers
   ansible.builtin.command: >-
-    {{ container_runtime }}-compose up -d --remove-orphans
+    {{ container_compose_runtime }} up -d --remove-orphans
   args:
     chdir: "{{ compose_dir.path }}"
 

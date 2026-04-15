@@ -1,4 +1,4 @@
 ---
 vault_container_name: "ansible-vault-dev"
 postgresql_container_name: "ansible-vault-postgres"
-container_runtime: "{{ lookup('env', 'VAULT_CONTAINER_RUNTIME') | default('docker', true) }}"
+container_compose_runtime: "{{ lookup('env', 'VAULT_COMPOSE_CONTAINER_RUNTIME') | default('docker compose', true) }}"
