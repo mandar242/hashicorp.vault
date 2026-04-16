@@ -1,6 +1,7 @@
 ---
-- name: Stop docker compose infrastructure
-  ansible.builtin.command: docker compose down --remove-orphans
+- name: Stop container infrastructure
+  ansible.builtin.command: >-
+    {{ container_runtime }} compose down --remove-orphans
   args:
     chdir: "{{ vault_temp_dir }}"
 
