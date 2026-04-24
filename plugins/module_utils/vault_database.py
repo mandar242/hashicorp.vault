@@ -660,6 +660,8 @@ class VaultDatabaseDynamicRoles(VaultDatabaseParent):
         path = f"v1/{self._mount_path}/creds/{name}"
         response_data = self._client._make_request("GET", path)
         out = dict(response_data.get("data", {}))
+        # Vault returns credentials under 'data' but lease info at the top level.
+        # Merge lease fields into the output for easier access to credential lifecycle info.
         for key in ("lease_id", "lease_duration", "renewable"):
             if key in response_data:
                 out[key] = response_data[key]

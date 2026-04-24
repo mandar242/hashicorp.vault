@@ -72,21 +72,6 @@
           - second_creds.dynamic_role_credentials.password != first_creds.dynamic_role_credentials.password
           - second_creds.dynamic_role_credentials.lease_id != first_creds.dynamic_role_credentials.lease_id
 
-    - name: Generate credentials in check mode
-      hashicorp.vault.database_dynamic_role_credentials:
-        name: "{{ test_role_name }}"
-      check_mode: true
-      register: check_mode_creds
-      no_log: true
-
-    - name: Validate check mode credentials were generated
-      ansible.builtin.assert:
-        that:
-          - check_mode_creds is changed
-          - check_mode_creds.dynamic_role_credentials is defined
-          - check_mode_creds.dynamic_role_credentials.username is defined
-          - check_mode_creds.dynamic_role_credentials.password is defined
-
     - name: Try to generate credentials for non-existent role
       hashicorp.vault.database_dynamic_role_credentials:
         name: "nonexistent-role-{{ vault_resource_suffix }}"

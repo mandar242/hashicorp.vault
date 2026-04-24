@@ -94,7 +94,7 @@ def main() -> None:
     )
     module = AnsibleModule(
         argument_spec=argument_spec,
-        supports_check_mode=True,
+        supports_check_mode=False,
     )
 
     client = get_authenticated_client(module)
