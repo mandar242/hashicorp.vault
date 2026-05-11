@@ -1,5 +1,5 @@
 ---
-- name: Run tests for custom certificate
+- name: Run tests for proxies
   module_defaults:
     group/hashicorp.vault.vault:
       url: "{{ ansible_test_vault_url }}"
