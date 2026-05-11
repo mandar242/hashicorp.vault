@@ -143,7 +143,7 @@ class VaultClient:
 
     @staticmethod
     def read_proxies(proxies: Optional[Union[str, dict]]) -> Dict[str, str]:
-        if isinstance(proxies, Dict):
+        if isinstance(proxies, dict):
             return proxies
         else:
             try:
