@@ -60,6 +60,7 @@
       vars:
         proxy_config:
           environment: "as dictionary"
+      when: ansible_version.full is version('2.19', '>=')
 
     ### Lookup
     - name: Read secret using proxy configuration as string parameter
