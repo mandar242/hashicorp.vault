@@ -18,8 +18,18 @@
     --network {{ ansible_test_container_network }} \
     -e 'SKIP_SETCAP=true' \
     -e 'VAULT_LOCAL_CONFIG={"disable_mlock": true}' \
-    -p 8200:8200 -e VAULT_DEV_ROOT_TOKEN_ID="{{ ansible_test_vault_root_token }}" \
-    docker.io/hashicorp/vault:latest
+    -p 8200:8200 \
+    docker.io/hashicorp/vault:latest \
+    server -dev -dev-root-token-id="{{ ansible_test_vault_root_token }}" -dev-listen-address=0.0.0.0:8200
+
+- name: Wait for Vault to be ready
+  ansible.builtin.uri:
+    url: "{{ ansible_test_vault_url }}/v1/sys/health"
+    status_code: [200, 429, 472, 473, 501, 503]
+  register: vault_health
+  until: vault_health is succeeded
+  retries: 30
+  delay: 2
 
 - name: Vault enable databse engine
   vault_http_request:
@@ -41,7 +51,7 @@
     src: init-user.sql.j2
     dest: "{{ ansible_test_tmp_dir.path }}/init-user.sql"
     mode: '0644'
-  
+
 - name: Deploy the PostGreSQL container
   ansible.builtin.command: >-
     {{ container_runtime }} run --name {{ ansible_test_postgres_container_name }} -d \
