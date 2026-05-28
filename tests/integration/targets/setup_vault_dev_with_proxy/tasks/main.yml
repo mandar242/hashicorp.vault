@@ -16,43 +16,11 @@
       dest: "{{ vault_temp_dir }}/docker-compose.yaml"
 
 - name: 'Run {{ container_runtime }} compose up'
-  block:
-    - name: Start compose infrastructure
-      ansible.builtin.command: >-
-        {{ container_runtime }} compose up -d --remove-orphans
-      args:
-        chdir: "{{ vault_temp_dir }}"
-      register: compose_up
-      retries: 3
-      delay: 10
-      until: compose_up.rc == 0
-  rescue:
-    - name: Collect compose container status
-      ansible.builtin.command: >-
-        {{ container_runtime }} compose ps -a
-      args:
-        chdir: "{{ vault_temp_dir }}"
-      register: compose_ps
-      changed_when: false
-      failed_when: false
-
-    - name: Display compose container status
-      ansible.builtin.debug:
-        var: compose_ps.stdout_lines
-
-    - name: Collect compose logs
-      ansible.builtin.command: >-
-        {{ container_runtime }} compose logs --no-color
-      args:
-        chdir: "{{ vault_temp_dir }}"
-      register: compose_logs
-      changed_when: false
-      failed_when: false
-
-    - name: Fail with compose startup details
-      ansible.builtin.fail:
-        msg: >-
-          Failed to start compose infrastructure after retries.
-          Logs have been collected but not displayed to avoid leaking secrets.
-          Check compose status above or run 'docker compose logs' in {{ vault_temp_dir }} locally to debug.
-          Error: {{ compose_up.stderr | default('compose failed') }}
+  ansible.builtin.command: >-
+    {{ container_runtime }} compose up -d --remove-orphans
+  args:
+    chdir: "{{ vault_temp_dir }}"
+  retries: 3
+  delay: 10
+  until: compose_up.rc == 0
+  register: compose_up
