@@ -37,69 +37,15 @@
       - docker.io/hashicorp/vault:latest
   no_log: true
 
-- name: Wait for container to join network
-  ansible.builtin.pause:
-    seconds: 5
-
-- name: Validate Vault container readiness
-  block:
-    - name: Ensure Vault container is running
-      ansible.builtin.command:
-        argv:
-          - "{{ container_runtime }}"
-          - container
-          - ls
-          - --filter
-          - "name=^/{{ ansible_test_vault_container_name }}$"
-          - --filter
-          - status=running
-          - --quiet
-      register: vault_container_running
-      changed_when: false
-      failed_when: vault_container_running.stdout == ""
-
-    - name: Wait for Vault to be ready at configured URL
-      ansible.builtin.uri:
-        url: "{{ ansible_test_vault_url }}/v1/sys/health"
-        status_code: [200, 429, 472, 473, 501, 503]
-        use_proxy: false
-      register: vault_health
-      until: vault_health is succeeded
-      retries: 20
-      delay: 2
-  rescue:
-    - name: Retry Vault readiness with container hostname URL
-      block:
-        - name: Set fallback URL to Vault container hostname
-          ansible.builtin.set_fact:
-            ansible_test_vault_url: "http://{{ ansible_test_vault_container_name }}:8200"
-
-        - name: Wait for Vault to be ready at fallback URL
-          ansible.builtin.uri:
-            url: "{{ ansible_test_vault_url }}/v1/sys/health"
-            status_code: [200, 429, 472, 473, 501, 503]
-            use_proxy: false
-          register: vault_health_fallback
-          until: vault_health_fallback is succeeded
-          retries: 20
-          delay: 2
-      rescue:
-        - name: Collect Vault container logs
-          ansible.builtin.command:
-            argv:
-              - "{{ container_runtime }}"
-              - logs
-              - "{{ ansible_test_vault_container_name }}"
-          register: vault_logs
-          changed_when: false
-          failed_when: false
-
-        - name: Fail with Vault startup details
-          ansible.builtin.fail:
-            msg: >-
-              Vault container failed startup/readiness checks.
-              Logs have been collected but not displayed to avoid leaking secrets.
-              Run 'docker logs {{ ansible_test_vault_container_name }}' locally to debug.
+- name: Wait for Vault to be ready
+  ansible.builtin.uri:
+    url: "{{ ansible_test_vault_url }}/v1/sys/health"
+    status_code: [200, 429, 472, 473, 501, 503]
+    use_proxy: false
+  register: vault_health
+  until: vault_health is succeeded
+  retries: 30
+  delay: 2
 
 - name: Vault enable databse engine
   vault_http_request:
