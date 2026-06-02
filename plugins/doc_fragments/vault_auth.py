@@ -79,6 +79,22 @@ options:
       - This variable accepts either a simple string or a JSON-formatted string.
     type: raw
     version_added: 1.3.0
+  timeout:
+    description:
+      - Timeout for Vault API requests in seconds.
+      - If not specified, the value of the E(VAULT_TIMEOUT) environment variable will be used.
+      - When not set, requests will wait indefinitely for a response.
+    type: int
+    version_added: 1.3.0
+  retries:
+    description:
+      - Number of retries to perform on failed requests, or a dictionary of retry configuration.
+      - When set to an integer, retries that many times on connection errors and retryable status codes.
+      - When set to a dict, it is passed as keyword arguments to C(urllib3.util.retry.Retry).
+      - If not specified, the value of the E(VAULT_RETRIES) environment variable will be used.
+      - This variable accepts either a simple integer or a JSON-formatted string.
+    type: raw
+    version_added: 1.3.0
 notes:
   - Authentication is required for all Vault operations.
   - Token authentication is the default method.
@@ -162,6 +178,23 @@ options:
     type: raw
     env:
       - name: VAULT_PROXIES
+    version_added: 1.3.0
+  timeout:
+    description:
+      - Timeout for Vault API requests in seconds.
+      - When not set, requests will wait indefinitely for a response.
+    type: int
+    env:
+      - name: VAULT_TIMEOUT
+    version_added: 1.3.0
+  retries:
+    description:
+      - Number of retries to perform on failed requests, or a dictionary of retry configuration.
+      - When set to an integer, retries that many times on connection errors and retryable status codes.
+      - When set to a dict, it is passed as keyword arguments to C(urllib3.util.retry.Retry).
+    type: raw
+    env:
+      - name: VAULT_RETRIES
     version_added: 1.3.0
 notes:
   - Authentication is required for all Vault operations.
