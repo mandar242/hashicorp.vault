@@ -88,9 +88,14 @@ options:
     version_added: 1.3.0
   retries:
     description:
-      - Number of retries to perform on failed requests, or a dictionary of retry configuration.
-      - When set to an integer, retries that many times on connection errors and retryable status codes.
-      - When set to a dict, it is passed as keyword arguments to C(urllib3.util.retry.Retry).
+    - Configure automatic retries for Vault API requests made through C(VaultClient).
+    - When set to an integer, equivalent to C(urllib3.util.retry.Retry(total=N)).
+      This retries transient transport failures (connection errors, read timeouts, and similar).
+      It does not retry HTTP error status codes by default.
+    - When set to a dict, passed as keyword arguments to C(urllib3.util.retry.Retry).
+      Use this to retry specific HTTP status codes (C(status_forcelist)), include POST
+      (C(allowed_methods)), or tune backoff (C(backoff_factor)).
+    - Retries apply to API calls made after authentication, not to AppRole login requests.
       - If not specified, the value of the E(VAULT_RETRIES) environment variable will be used.
       - This variable accepts either a simple integer or a JSON-formatted string.
     type: raw
